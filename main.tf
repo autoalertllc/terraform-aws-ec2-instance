@@ -2,6 +2,21 @@ locals {
   is_t_instance_type = replace(var.instance_type, "/^t[23]{1}\\..*$/", "1") == "1" ? true : false
 }
 
+module "userdata" {
+  source   = "../userdata"
+  platform = "${var.platform}"
+}
+
+data "template_file" "userdata" {
+  count    = "${var.instance_count}"
+  template = "${module.userdata.template_file}"
+
+  vars {
+    aws_region    = "${var.aws_region}"
+    instance_name = "${format("%s-%02d", var.name, count.index + var.name_suffix_offset)}"
+  }
+}
+
 ######
 # Note: network_interface can't be specified together with associate_public_ip_address
 ######
@@ -10,7 +25,7 @@ resource "aws_instance" "this" {
 
   ami           = var.ami
   instance_type = var.instance_type
-  user_data     = var.user_data
+  user_data     = data.template_file.userdata.*.rendered[count.index]
   subnet_id = element(
     distinct(compact(concat([var.subnet_id], var.subnet_ids))),
     count.index,
