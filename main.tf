@@ -27,6 +27,10 @@ resource "aws_instance" "this" {
   ipv6_addresses              = var.ipv6_addresses
 
   ebs_optimized = var.ebs_optimized
+  
+  lifecycle {
+    ignore_changes = [ami, user_data]
+  }
 
   dynamic "root_block_device" {
     for_each = var.root_block_device
